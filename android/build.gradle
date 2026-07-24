@@ -9,14 +9,6 @@ rootProject.buildDir = "../build"
 
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-
-    // 어떤 플러그인이든 강제로 최신 코틀린 기준(1.8 이상)으로 컴파일하도록 멱살을 잡고 끌어올리는 설정입니다.
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            jvmTarget = "1.8"
-            freeCompilerArgs += ["-Xjvm-default=all"]
-        }
-    }
 }
 
 subprojects {
