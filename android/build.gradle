@@ -20,7 +20,16 @@ allprojects {
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
+
+    // 👇 핵심: 모든 서브프로젝트/플러그인의 Kotlin 컴파일 타깃을 1.8로 강제 승격
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "1.8"
+            languageVersion = "1.8"
+        }
+    }
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
