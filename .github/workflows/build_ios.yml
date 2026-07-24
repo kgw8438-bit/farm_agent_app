@@ -1,0 +1,37 @@
+name: Build iOS IPA (Unsigned)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest # 👈 핵심: 윈도우 대신 애플 맥북 서버를 빌려옵니다!
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.22.2' # 안드로이드 성공했던 버전 그대로 사용
+        channel: 'stable'
+
+    - name: Get Dependencies
+      run: flutter pub get
+
+    - name: Build iOS App (No Codesign)
+      run: flutter build ios --release --no-codesign
+
+    - name: Package into IPA
+      run: |
+        mkdir Payload
+        mv build/ios/iphoneos/Runner.app Payload/
+        zip -qq -r app-release.ipa Payload
+        
+    - name: Upload iOS IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release-ios
+        path: app-release.ipa
