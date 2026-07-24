@@ -137,7 +137,7 @@ class _MainScreenState extends State<MainScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('1. 민원인 정보', style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
