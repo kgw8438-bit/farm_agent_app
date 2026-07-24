@@ -21,7 +21,7 @@ jobs:
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.6' # 👈 핵심: 최신 버전으로 자동 업데이트되는 것을 막고 순정 상태에 맞는 버전을 강제합니다!
+        flutter-version: '3.22.2' # 👈 요구사항에 맞게 3.22.2로 올렸습니다!
         channel: 'stable'
 
     - name: Get Dependencies
