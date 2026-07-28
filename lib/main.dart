@@ -14,7 +14,7 @@ class FarmAgentApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '경북농업기술원 AI 보조',
+      title: '경상북도농업기술원 농업현장 AI 진단시스템',
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF0F172A),
         cardColor: const Color(0xFF1E293B),
@@ -58,9 +58,10 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _runConsult() async {
-    if (_symptomController.text.trim().isEmpty) {
+    // 사진과 증상 모두 없을 때만 경고 (사진만으로도 검색 가능하게 웹과 동기화)
+    if (_symptomController.text.trim().isEmpty && _selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('증상을 입력해 주세요.')),
+        const SnackBar(content: Text('사진을 첨부하시거나 증상을 입력해 주세요.')),
       );
       return;
     }
@@ -91,14 +92,21 @@ class _MainScreenState extends State<MainScreen> {
 
       if (json['status'] == 'success') {
         String prescription = json['prescription'];
-        RegExp exp = RegExp(r'\[참조_표준사진:\s*([^\]]+)\]', caseSensitive: false);
+        
+        // 💡 강력한 정규식 적용 (대괄호 유무 상관없이 파일명 추출)
+        RegExp exp = RegExp(r'참조_표준사진:\s*([^\n\r\]]+)', caseSensitive: false);
         var match = exp.firstMatch(prescription);
 
         if (match != null) {
           String filename = match.group(1)!.trim();
-          prescription = prescription.replaceAll(exp, '').trim();
+          filename = filename.replaceAll(']', '').trim(); // 찌꺼기 괄호 제거
+          
+          prescription = prescription.replaceAll(RegExp(r'\[?참조_표준사진:\s*[^\n\r\]]+\]?', caseSensitive: false), '').trim();
           _dbImageUrl = '$serverUrl/api/image/$selectedCrop/${Uri.encodeComponent(filename)}';
         }
+
+        // 💡 화면 출력 전 쓸데없는 대괄호 전체 삭제
+        prescription = prescription.replaceAll('[', '').replaceAll(']', '');
 
         setState(() {
           _resultText = prescription;
@@ -131,7 +139,10 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('경북농업기술원 병해충 AI진단'),
+        title: const Text(
+          '경상북도농업기술원 농업현장 AI 진단시스템',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: const Color(0xFF1E293B),
       ),
       body: SingleChildScrollView(
@@ -150,7 +161,11 @@ class _MainScreenState extends State<MainScreen> {
             DropdownButton<String>(
               value: selectedCrop,
               isExpanded: true,
-              items: ['감', '고추', '딸기', '참외', '복숭아'].map((String crop) {
+              // 💡 14개 작물 완벽 추가 적용
+              items: [
+                '감', '거베라', '고추', '국화', '당귀', '딸기', '마늘', 
+                '버터헤드', '복숭아', '오미자', '인삼', '자두', '장미', '참외'
+              ].map((String crop) {
                 return DropdownMenuItem<String>(value: crop, child: Text(crop));
               }).toList(),
               onChanged: (val) => setState(() => selectedCrop = val!),
@@ -173,19 +188,24 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ],
             ),
-            if (_selectedImage != null) Image.file(_selectedImage!, height: 150),
+            if (_selectedImage != null) 
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Image.file(_selectedImage!, height: 150),
+              ),
             const SizedBox(height: 16),
 
             const Text('4. 상세 증상 입력', style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
             Wrap(
               spacing: 6,
               children: [
-                ActionChip(label: const Text('과실 흑색 반점'), onPressed: () => _addSymptomChip('과실 표면 검은색 반점')),
-                ActionChip(label: const Text('잎 점무늬'), onPressed: () => _addSymptomChip('잎 둥근 점무늬 및 조기 낙엽')),
-                ActionChip(label: const Text('꼭지 무름'), onPressed: () => _addSymptomChip('감 꼭지 무름 및 낙과')),
+                // 💡 웹과 동일하게 칩(Chip) 텍스트 업데이트
+                ActionChip(label: const Text('과실 반점'), onPressed: () => _addSymptomChip('과실 표면 흑색 반점')),
+                ActionChip(label: const Text('잎 점무늬/낙엽'), onPressed: () => _addSymptomChip('잎 둥근 점무늬 및 조기 낙엽')),
+                ActionChip(label: const Text('줄기/꼭지 무름'), onPressed: () => _addSymptomChip('줄기 및 꼭지 무름')),
               ],
             ),
-            TextField(controller: _symptomController, maxLines: 3, decoration: const InputDecoration(border: OutlineInputBorder(), hintText: '증상을 상세히 입력해 주세요')),
+            TextField(controller: _symptomController, maxLines: 3, decoration: const InputDecoration(border: OutlineInputBorder(), hintText: '증상을 상세히 입력해 주세요 (사진만 첨부해도 무방함)')),
             const SizedBox(height: 20),
 
             SizedBox(
@@ -200,8 +220,14 @@ class _MainScreenState extends State<MainScreen> {
             const SizedBox(height: 24),
 
             const Text('📋 진단 보고서', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 18, fontWeight: FontWeight.bold)),
-            if (_dbImageUrl != null) Image.network(_dbImageUrl!, height: 150),
+            const SizedBox(height: 8),
+            if (_dbImageUrl != null) 
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Image.network(_dbImageUrl!, height: 150),
+              ),
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(8)),
               child: Text(_resultText, style: const TextStyle(fontSize: 14, height: 1.6)),
